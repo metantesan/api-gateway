@@ -1,0 +1,128 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": true,
+  "panels": [
+    {
+      "title": "Requests/sec",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "sum(rate(nginx_vts_server_requests_total{code!~\"5xx\"}[1m])) by (code)", "legendFormat": "{{code}}", "refId": "A" },
+        { "expr": "sum(rate(nginx_vts_server_requests_total[1m]))", "legendFormat": "total", "refId": "B" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "color": { "mode": "palette-classic" } },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Response Time (p50, p95, p99)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, sum(rate(nginx_vts_server_request_duration_seconds_bucket[1m])) by (le))", "legendFormat": "p50", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum(rate(nginx_vts_server_request_duration_seconds_bucket[1m])) by (le))", "legendFormat": "p95", "refId": "B" },
+        { "expr": "histogram_quantile(0.99, sum(rate(nginx_vts_server_request_duration_seconds_bucket[1m])) by (le))", "legendFormat": "p99", "refId": "C" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "color": { "mode": "palette-classic" } },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Inbound Traffic (bytes/sec)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        { "expr": "sum(rate(nginx_vts_server_bytes_total{direction=\"in\"}[1m]))", "legendFormat": "inbound", "refId": "A" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "Bps", "color": { "mode": "palette-classic" } },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Outbound Traffic (bytes/sec)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        { "expr": "sum(rate(nginx_vts_server_bytes_total{direction=\"out\"}[1m]))", "legendFormat": "outbound", "refId": "A" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "Bps", "color": { "mode": "palette-classic" } },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Cache Hit Ratio",
+      "type": "gauge",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 16 },
+      "targets": [
+        { "expr": "sum(rate(api_gateway_cache_status_total{status=\"HIT\"}[5m])) / sum(rate(api_gateway_cache_status_total[5m])) * 100", "refId": "A" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "min": 0, "max": 100, "thresholds": { "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 50 }, { "color": "green", "value": 80 }] } },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Status Codes (last 5m)",
+      "type": "piechart",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 16 },
+      "targets": [
+        { "expr": "sum(increase(nginx_vts_filter_requests_total{filter_name=\"status::*\", filter_key=~\"2..\"}[5m]))", "legendFormat": "2xx", "refId": "A" },
+        { "expr": "sum(increase(nginx_vts_filter_requests_total{filter_name=\"status::*\", filter_key=~\"4..\"}[5m]))", "legendFormat": "4xx", "refId": "B" },
+        { "expr": "sum(increase(nginx_vts_filter_requests_total{filter_name=\"status::*\", filter_key=~\"5..\"}[5m]))", "legendFormat": "5xx", "refId": "C" }
+      ]
+    },
+    {
+      "title": "Cache Status Breakdown",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 16 },
+      "targets": [
+        { "expr": "sum(rate(api_gateway_cache_status_total[1m])) by (status)", "legendFormat": "{{status}}", "refId": "A" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "color": { "mode": "palette-classic" } },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Route Matches/sec",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 22 },
+      "targets": [
+        { "expr": "sum(rate(api_gateway_route_match_total[1m])) by (appname)", "legendFormat": "{{appname}}", "refId": "A" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "color": { "mode": "palette-classic" } },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Rate Limited (429/sec)",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 4, "x": 12, "y": 22 },
+      "targets": [
+        { "expr": "sum(rate(nginx_vts_filter_requests_total{filter_key=\"429\"}[5m]))", "refId": "A" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 10 }] } },
+        "overrides": []
+      }
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "tags": ["api-gateway", "cdn"],
+  "templating": { "list": [] },
+  "time": { "from": "now-15m", "to": "now" },
+  "title": "API Gateway - Live Traffic",
+  "uid": "api-gateway-live",
+  "version": 1
+}

@@ -1,0 +1,36 @@
+routes:
+  # Dynamic route: first capture group maps to a backend
+  # cache: true enables caching with default TTL of 10m
+  # cache: 300 enables caching with custom TTL of 300s
+  # cache: { ttl: 300 } also works for custom TTL
+  - match: "^/api/([a-zA-Z0-9_-]+)(/.*)?$"
+    backends:
+      example: "http://example-service:3000"
+      auth: "http://auth-service:3000"
+    rate_limit:
+      rps: 5
+      burst: 5
+    cache: true
+
+  # Dynamic route without caching
+  - match: "^/apps/([a-zA-Z0-9_-]+)(/.*)?$"
+    backends:
+      landing: "http://landing-service:3000"
+      dashboard: "http://dashboard-service:3000"
+
+  # Static route: single backend for all matching requests
+  - match: "^/.well-known/.*$"
+    backend: "http://sso-service:3000"
+    rate_limit:
+      rps: 5
+      burst: 5
+
+  # Catch-all root route
+  - match: "^/$"
+    backend: "http://landing-service:3000"
+    cache: 300
+
+cors:
+  allowed_origins:
+    - "example.com"
+    - "api.example.com"

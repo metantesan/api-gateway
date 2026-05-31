@@ -1,0 +1,6 @@
+{
+  "Lua.workspace.library": [
+    "$HOME/.luarocks/share/lua/5.4",
+    "${3rd}/OpenResty/library"
+  ]
+}

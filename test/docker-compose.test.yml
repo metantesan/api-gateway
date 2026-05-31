@@ -1,0 +1,34 @@
+services:
+  api-gateway:
+    build:
+      context: ../src
+      dockerfile: Dockerfile
+    container_name: api-gateway-test
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+      - "9145:9145"
+    environment:
+      - GWCONF=/etc/gwconf/gateway.yaml
+    volumes:
+      - ./gateway.test.yaml:/etc/gwconf/gateway.yaml:ro
+      - gw_cache:/tmp/nginx_cache
+    depends_on:
+      - echo-backend
+    networks:
+      - test-net
+
+  echo-backend:
+    build:
+      context: echo-backend
+      dockerfile: Dockerfile
+    container_name: echo-backend-test
+    networks:
+      - test-net
+
+volumes:
+  gw_cache:
+
+networks:
+  test-net:
+    name: gw-test-net
