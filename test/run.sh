@@ -227,7 +227,7 @@ assert_json_exists "$LAST_LOG" "response_headers" "Log contains response_headers
 assert_json_exists "$LAST_LOG" "response_body" "Log contains response_body"
 
 curl -s "$GATEWAY/api/auth/login" > /dev/null
-sleep 1
+sleep 2
 LOG_DATA2=$(curl -s "$LOG_MOCK")
 LAST_LOG2=$(echo "$LOG_DATA2" | python3 -c "import sys,json; print(json.dumps(json.load(sys.stdin)['last']))" 2>/dev/null || echo "{}")
 assert_json_field "$LAST_LOG2" "appname" "api" "Dynamic route log has appname=api"
