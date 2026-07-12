@@ -33,7 +33,7 @@ for i, route in ipairs(routes) do
         elseif route.backend then
             backend_url = route.backend
             appname = route.name or "static"
-            ngx_var.backend_name = "static"
+            ngx_var.backend_name = route.name or "static"
         end
 
         if not backend_url then

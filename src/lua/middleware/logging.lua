@@ -3,9 +3,15 @@ local config = require "config"
 
 local _M = {}
 
+local MAX_BODY_SIZE = 10 * 1024 * 1024
+
 function _M.capture_request()
     ngx.req.read_body()
-    ngx.ctx.req_body = ngx.req.get_body_data() or ""
+    local body = ngx.req.get_body_data() or ""
+    if #body > MAX_BODY_SIZE then
+        body = string.sub(body, 1, MAX_BODY_SIZE)
+    end
+    ngx.ctx.req_body = body
     ngx.ctx.req_headers = ngx.req.get_headers()
 end
 
@@ -15,15 +21,28 @@ end
 
 function _M.capture_response_body()
     local chunk, eof = ngx.arg[1], ngx.arg[2]
-    ngx.ctx.resp_buf = (ngx.ctx.resp_buf or "") .. (chunk or "")
+    if chunk and chunk ~= "" then
+        local buf = ngx.ctx.resp_buf or ""
+        if #buf + #chunk > MAX_BODY_SIZE then
+            chunk = string.sub(buf .. chunk, 1, MAX_BODY_SIZE)
+            ngx.ctx.resp_buf = chunk
+            ngx.ctx.resp_overflow = true
+        else
+            ngx.ctx.resp_buf = buf .. chunk
+        end
+    end
     if eof then
-        ngx.var.resp_body = ngx.ctx.resp_buf
+        ngx.var.resp_body = ngx.ctx.resp_buf or ""
     end
 end
 
 function _M.send_log()
     local logging = config.get_logging()
     if not logging.enabled or logging.endpoint == "" then
+        return
+    end
+
+    if ngx.var.backend_url == "" then
         return
     end
 

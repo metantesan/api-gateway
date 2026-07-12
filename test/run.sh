@@ -169,6 +169,8 @@ fi
 
 echo ""
 echo "--- Logging to Logstash ---"
+
+curl -s "$GATEWAY/" > /dev/null
 sleep 1
 
 LOG_DATA=$(curl -s "$LOG_MOCK")
@@ -215,7 +217,7 @@ assert_json_exists() {
 }
 
 assert_json_field "$LAST_LOG" "appname" "landing" "Root log has appname=landing"
-assert_json_field "$LAST_LOG" "backend" "echo" "Root log has backend=echo"
+assert_json_field "$LAST_LOG" "backend" "landing" "Root log has backend=landing"
 assert_json_exists "$LAST_LOG" "remote_addr" "Log contains remote_addr"
 assert_json_exists "$LAST_LOG" "time_local" "Log contains time_local"
 assert_json_exists "$LAST_LOG" "request_line" "Log contains request_line"
