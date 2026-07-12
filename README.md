@@ -9,6 +9,7 @@ A dynamic API Gateway built on OpenResty, configurable via YAML.
 *   **Per-Route Rate Limiting:** Configure rate limits (requests/sec + burst) per route.
 *   **CORS Handling:** Define allowed origins in config. Automatically handles preflight requests.
 *   **Per-Route Caching:** Enable response caching per route with configurable TTL. Responses are served from cache on subsequent requests (HIT/MISS/BYPASS via `X-Cache-Status` header).
+*   **Request/Response Logging:** Capture full request and response data (headers, bodies) and send asynchronously to Logstash/Elasticsearch. Each route has a `name` field for log identification.
 *   **Prometheus Metrics:** Built-in metrics endpoint for monitoring.
 *   **Dockerized:** Containerized with Docker and Docker Compose.
 
@@ -51,7 +52,8 @@ Routes are matched in order. The first matching route wins.
 ```yaml
 routes:
   # Dynamic backend: first regex capture group selects the backend
-  - match: "^/api/([a-zA-Z0-9_-]+)(/.*)?$"
+  - name: api
+    match: "^/api/([a-zA-Z0-9_-]+)(/.*)?$"
     backends:
       example: "http://example-service:3000"
       auth: "http://auth-service:3000"
@@ -60,14 +62,16 @@ routes:
       burst: 5
 
   # Static backend: all matching requests go to one URL
-  - match: "^/.well-known/.*$"
+  - name: sso
+    match: "^/.well-known/.*$"
     backend: "http://sso-service:3000"
     rate_limit:
       rps: 5
       burst: 5
 
   # Root route
-  - match: "^/$"
+  - name: landing
+    match: "^/$"
     backend: "http://landing-service:3000"
 ```
 
@@ -112,6 +116,45 @@ routes:
 ```
 
 Routes without `cache` are not cached — the gateway proxies every request directly to the backend.
+
+### Logging
+
+Enable request/response logging to a Logstash (or any HTTP JSON endpoint). Each log entry includes full request and response data with the route name for identification.
+
+```yaml
+logging:
+  enabled: true
+  endpoint: "http://logstash:5044"
+  timeout_ms: 2000
+```
+
+**JSON payload sent to Logstash:**
+
+```json
+{
+  "remote_addr": "1.2.3.4",
+  "time_local": "12/Jul/2026:10:00:00 +0000",
+  "request_line": "GET /api/auth/callback HTTP/1.1",
+  "status": 200,
+  "appname": "api",
+  "backend": "auth",
+  "request_headers": { "...": "..." },
+  "request_body": "{ ... }",
+  "response_headers": { "...": "..." },
+  "response_body": "{ ... }"
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `appname` | Route `name` from config (e.g. `api`, `sso`, `landing`) |
+| `backend` | Matched backend key for dynamic routes, or route name for static routes |
+| `request_headers` | Full client request headers |
+| `request_body` | Client request body (truncated to 10MB) |
+| `response_headers` | Upstream response headers |
+| `response_body` | Upstream response body (truncated to 10MB) |
+
+Logs are sent asynchronously via `ngx.timer` so they don't add latency to the request.
 
 ### CORS
 
@@ -169,7 +212,7 @@ Grafana comes pre-provisioned with a **"API Gateway - Live Traffic"** dashboard 
 
 ## Testing
 
-Integration tests run the gateway container with a mock backend and verify routing, caching, CORS, rate limiting, and metrics:
+Integration tests run the gateway container with a mock backend and logstash mock, verifying routing, caching, CORS, rate limiting, metrics, and logging:
 
 ```bash
 cd test
