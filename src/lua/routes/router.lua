@@ -1,5 +1,6 @@
 local config = require "config"
 local monitoring = require "metrics.monitoring"
+local logging = require "middleware.logging"
 
 local ngx_var = ngx.var
 local ngx_log = ngx.log
@@ -67,6 +68,8 @@ for i, route in ipairs(routes) do
         end
 
         monitoring.route_match_total:inc(1, { ngx_var.host, "matched", appname })
+
+        logging.capture_request()
         return
     end
 end

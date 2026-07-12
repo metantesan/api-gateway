@@ -1,3 +1,5 @@
+local logging = require "middleware.logging"
+
 local cors_origin = ngx.var.cors_origin
 local cors_credentials = ngx.var.cors_credentials
 
@@ -13,3 +15,5 @@ if method == "OPTIONS" and cors_origin and cors_origin ~= "" then
     ngx.header["Content-Length"] = 0
     return ngx.exit(204)
 end
+
+logging.capture_response_headers()
