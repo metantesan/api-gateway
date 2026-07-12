@@ -15,6 +15,7 @@ services:
       - gw_cache:/tmp/nginx_cache
     depends_on:
       - echo-backend
+      - logstash-mock
     networks:
       - test-net
 
@@ -23,6 +24,17 @@ services:
       context: echo-backend
       dockerfile: Dockerfile
     container_name: echo-backend-test
+    networks:
+      - test-net
+
+  logstash-mock:
+    build:
+      context: mock-logstash
+      dockerfile: Dockerfile
+    container_name: logstash-mock-test
+    ports:
+      - "5044:5044"
+      - "5045:5045"
     networks:
       - test-net
 

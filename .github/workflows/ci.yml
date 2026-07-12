@@ -33,6 +33,17 @@ jobs:
             sleep 2
           done
 
+      - name: Wait for logstash mock to be ready
+        run: |
+          for i in $(seq 1 15); do
+            if curl -s http://localhost:5045/ > /dev/null 2>&1; then
+              echo "Logstash mock is ready"
+              break
+            fi
+            echo "Waiting for logstash mock... ($i/15)"
+            sleep 2
+          done
+
       - name: Run integration tests
         run: bash test/run.sh
 

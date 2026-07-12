@@ -1,5 +1,11 @@
+logging:
+  enabled: true
+  endpoint: "http://logstash-mock:5044"
+  timeout_ms: 2000
+
 routes:
-  - match: "^/api/([a-zA-Z0-9_-]+)(/.*)?$"
+  - name: api
+    match: "^/api/([a-zA-Z0-9_-]+)(/.*)?$"
     backends:
       example: "http://echo-backend"
       auth: "http://echo-backend"
@@ -8,13 +14,15 @@ routes:
       burst: 2
     cache: true
 
-  - match: "^/.well-known/.*$"
+  - name: sso
+    match: "^/.well-known/.*$"
     backend: "http://echo-backend"
     rate_limit:
       rps: 2
       burst: 2
 
-  - match: "^/$"
+  - name: landing
+    match: "^/$"
     backend: "http://echo-backend"
     cache: true
 

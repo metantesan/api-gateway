@@ -6,6 +6,7 @@ local config_path = os.getenv("GWCONF") or "/etc/gwconf/gateway.yaml"
 
 local routes = {}
 local cors_allowed_origins = {}
+local logging = { enabled = false, endpoint = "", timeout_ms = 2000 }
 
 function _M.load()
     local f, err = io.open(config_path, "r")
@@ -28,6 +29,7 @@ function _M.load()
     for i, route in ipairs(parsed_routes) do
         if route.match then
             routes[i] = {
+                name = route.name or ("route_" .. i),
                 match_pattern = route.match,
                 backends = route.backends,
                 backend = route.backend,
@@ -44,6 +46,14 @@ function _M.load()
         end
     end
 
+    if parsed.logging then
+        logging = {
+            enabled = parsed.logging.enabled or false,
+            endpoint = parsed.logging.endpoint or "",
+            timeout_ms = parsed.logging.timeout_ms or 2000,
+        }
+    end
+
     ngx.log(ngx.INFO, "loaded config with ", #routes, " routes from ", config_path)
     return true
 end
@@ -54,6 +64,10 @@ end
 
 function _M.is_cors_allowed(domain)
     return cors_allowed_origins[domain] ~= nil
+end
+
+function _M.get_logging()
+    return logging
 end
 
 return _M

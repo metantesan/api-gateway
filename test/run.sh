@@ -3,6 +3,7 @@ set -euo pipefail
 
 GATEWAY="http://localhost:8080"
 METRICS="http://localhost:9145"
+LOG_MOCK="http://localhost:5045"
 PASS=0
 FAIL=0
 
@@ -165,6 +166,70 @@ else
     echo "  WARN: Rate limiting did not return 429 (may be expected with multiple workers)"
     PASS=$((PASS + 1))
 fi
+
+echo ""
+echo "--- Logging to Logstash ---"
+sleep 1
+
+LOG_DATA=$(curl -s "$LOG_MOCK")
+LOG_COUNT=$(echo "$LOG_DATA" | python3 -c "import sys,json; print(len(json.load(sys.stdin)['logs']))" 2>/dev/null || echo "0")
+if [ "$LOG_COUNT" -gt 0 ]; then
+    echo "  PASS: Logstash mock received $LOG_COUNT log(s)"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL: Logstash mock received no logs"
+    FAIL=$((FAIL + 1))
+fi
+
+LAST_LOG=$(echo "$LOG_DATA" | python3 -c "import sys,json; print(json.dumps(json.load(sys.stdin)['last']))" 2>/dev/null || echo "{}")
+
+assert_json_field() {
+    local json_str="$1"
+    local field="$2"
+    local expected="$3"
+    local desc="$4"
+    local actual
+    actual=$(echo "$json_str" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('$field',''))" 2>/dev/null || echo "")
+    if [ "$actual" = "$expected" ]; then
+        echo "  PASS: $desc ($field=$actual)"
+        PASS=$((PASS + 1))
+    else
+        echo "  FAIL: $desc (expected=$expected actual=$actual)"
+        FAIL=$((FAIL + 1))
+    fi
+}
+
+assert_json_exists() {
+    local json_str="$1"
+    local field="$2"
+    local desc="$3"
+    local exists
+    exists=$(echo "$json_str" | python3 -c "import sys,json; d=json.load(sys.stdin); print('true' if '$field' in d else 'false')" 2>/dev/null || echo "false")
+    if [ "$exists" = "true" ]; then
+        echo "  PASS: $desc"
+        PASS=$((PASS + 1))
+    else
+        echo "  FAIL: $desc (field '$field' missing)"
+        FAIL=$((FAIL + 1))
+    fi
+}
+
+assert_json_field "$LAST_LOG" "appname" "landing" "Root log has appname=landing"
+assert_json_field "$LAST_LOG" "backend" "echo" "Root log has backend=echo"
+assert_json_exists "$LAST_LOG" "remote_addr" "Log contains remote_addr"
+assert_json_exists "$LAST_LOG" "time_local" "Log contains time_local"
+assert_json_exists "$LAST_LOG" "request_line" "Log contains request_line"
+assert_json_exists "$LAST_LOG" "status" "Log contains status"
+assert_json_exists "$LAST_LOG" "request_headers" "Log contains request_headers"
+assert_json_exists "$LAST_LOG" "response_headers" "Log contains response_headers"
+assert_json_exists "$LAST_LOG" "response_body" "Log contains response_body"
+
+curl -s "$GATEWAY/api/auth/login" > /dev/null
+sleep 1
+LOG_DATA2=$(curl -s "$LOG_MOCK")
+LAST_LOG2=$(echo "$LOG_DATA2" | python3 -c "import sys,json; print(json.dumps(json.load(sys.stdin)['last']))" 2>/dev/null || echo "{}")
+assert_json_field "$LAST_LOG2" "appname" "api" "Dynamic route log has appname=api"
+assert_json_field "$LAST_LOG2" "backend" "auth" "Dynamic route log has backend=auth"
 
 echo ""
 echo "=== Results ==="

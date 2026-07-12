@@ -3,6 +3,7 @@ FROM openresty/openresty:alpine-fat AS luarocks-builder
 RUN apk add --no-cache --virtual .build-deps git yaml yaml-dev \
  && luarocks install lyaml \
  && luarocks install lua-resty-prometheus \
+ && luarocks install lua-resty-http \
  && apk del .build-deps
 
 FROM igorbarinov/openresty-nginx-module-vts

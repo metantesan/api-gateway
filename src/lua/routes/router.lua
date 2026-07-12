@@ -26,11 +26,14 @@ for i, route in ipairs(routes) do
         local appname = ""
 
         if route.backends then
-            appname = m[1] or ""
-            backend_url = route.backends[appname]
+            local sub = m[1] or ""
+            backend_url = route.backends[sub]
+            appname = route.name or sub
+            ngx_var.backend_name = sub
         elseif route.backend then
             backend_url = route.backend
-            appname = "static"
+            appname = route.name or "static"
+            ngx_var.backend_name = "static"
         end
 
         if not backend_url then
