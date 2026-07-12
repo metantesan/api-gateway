@@ -67,8 +67,6 @@ for i, route in ipairs(routes) do
         end
 
         monitoring.route_match_total:inc(1, { ngx_var.host, "matched", appname })
-
-        require("middleware.logging").capture_request()
         return
     end
 end
