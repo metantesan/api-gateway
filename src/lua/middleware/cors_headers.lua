@@ -13,3 +13,5 @@ if method == "OPTIONS" and cors_origin and cors_origin ~= "" then
     ngx.header["Content-Length"] = 0
     return ngx.exit(204)
 end
+
+require("middleware.logging").capture_response_headers()
